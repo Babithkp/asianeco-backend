@@ -3,7 +3,6 @@
 
 // Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
 // Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
-
 generator client {
   provider = "prisma-client-js"
   output   = "../generated/prisma"
@@ -23,7 +22,7 @@ model Admin {
 
 model Settings {
   id                String @id @default(auto()) @map("_id") @db.ObjectId
-  address           String 
+  address           String
   contactNumber     BigInt
   email             String
   website           String
@@ -38,7 +37,7 @@ model Settings {
 }
 
 model Client {
-  id            String @id @default(auto()) @map("_id") @db.ObjectId
+  id            String    @id @default(auto()) @map("_id") @db.ObjectId
   name          String
   contactPerson String
   email         String
@@ -48,6 +47,8 @@ model Client {
   state         String
   pincode       Int
   creditLimit   BigInt
+  quotations    Quote[]
+  invoices      Invoice[]
 }
 
 model Expenses {
@@ -73,6 +74,8 @@ model Quote {
   discount      Float
   amount        Float
   items         Item[]
+  Client        Client?  @relation(fields: [clientId], references: [id])
+  clientId      String?  @db.ObjectId
 }
 
 model Item {
@@ -97,6 +100,7 @@ model Invoice {
   invoiceId       String
   date            DateTime
   dueDate         DateTime
+  customerName    String
   customerAddress String
   customerGSTIN   BigInt
   contactNumber   BigInt
@@ -107,6 +111,8 @@ model Invoice {
   total           BigInt
   items           Item[]
   payments        Payments[]
+  Client          Client?    @relation(fields: [clientId], references: [id])
+  clientId        String?    @db.ObjectId
 }
 
 model Payments {
@@ -115,6 +121,7 @@ model Payments {
   date          DateTime
   clientName    String
   amount        Float
+  amountInWords String
   pendingAmount Float
   transactionId BigInt
   paymentMode   String
@@ -128,6 +135,6 @@ model Notification {
   title       String
   message     String
   description String?
-  status      String @default("unread")
+  status      String   @default("unread")
   createdAt   DateTime @default(now())
 }
