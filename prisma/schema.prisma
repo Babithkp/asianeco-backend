@@ -13,3 +13,121 @@ datasource db {
   provider = "mongodb"
   url      = env("DATABASE_URL")
 }
+
+model Admin {
+  id            String @id @default(auto()) @map("_id") @db.ObjectId
+  userName      String @unique
+  password      String
+  purchaseValue BigInt
+}
+
+model Settings {
+  id                String @id @default(auto()) @map("_id") @db.ObjectId
+  address           String 
+  contactNumber     BigInt
+  email             String
+  website           String
+  GSTIN             String
+  HSN               String
+  bankName          String
+  AccountNo         BigInt
+  IFSC              BigInt
+  invoiceSequence   BigInt
+  quotationSequence BigInt
+  expenseSequence   BigInt
+}
+
+model Client {
+  id            String @id @default(auto()) @map("_id") @db.ObjectId
+  name          String
+  contactPerson String
+  email         String
+  contactNumber BigInt
+  address       String
+  city          String
+  state         String
+  pincode       Int
+  creditLimit   BigInt
+}
+
+model Expenses {
+  id            String   @id @default(auto()) @map("_id") @db.ObjectId
+  ExpenseId     BigInt
+  description   String
+  date          DateTime
+  category      String
+  amount        BigInt
+  amountInWords String
+  paymentType   String
+  transactionId BigInt
+  note          String
+}
+
+model Quote {
+  id            String   @id @default(auto()) @map("_id") @db.ObjectId
+  quoteId       String
+  dueDate       DateTime
+  customerName  String
+  contactNumber BigInt
+  email         String
+  discount      Float
+  amount        Float
+  items         Item[]
+}
+
+model Item {
+  id            String   @id @default(auto()) @map("_id") @db.ObjectId
+  itemName      String
+  category      BigInt
+  supplerName   String
+  purchasePrice Float
+  sellingPrice  Float
+  measurement   Float
+  purchaseQty   BigInt
+  tax           String
+  description   String
+  Invoice       Invoice? @relation(fields: [invoiceId], references: [id])
+  invoiceId     String?  @db.ObjectId
+  Quote         Quote?   @relation(fields: [quoteId], references: [id])
+  quoteId       String?  @db.ObjectId
+}
+
+model Invoice {
+  id              String     @id @default(auto()) @map("_id") @db.ObjectId
+  invoiceId       String
+  date            DateTime
+  dueDate         DateTime
+  customerAddress String
+  customerGSTIN   BigInt
+  contactNumber   BigInt
+  email           BigInt
+  discount        BigInt
+  subTotal        BigInt
+  status          String
+  total           BigInt
+  items           Item[]
+  payments        Payments[]
+}
+
+model Payments {
+  id            String   @id @default(auto()) @map("_id") @db.ObjectId
+  invoiceNumber String
+  date          DateTime
+  clientName    String
+  amount        Float
+  pendingAmount Float
+  transactionId BigInt
+  paymentMode   String
+  remarks       String
+  Invoice       Invoice? @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+  invoiceId     String?  @db.ObjectId
+}
+
+model Notification {
+  id          String   @id @default(auto()) @map("_id") @db.ObjectId
+  title       String
+  message     String
+  description String?
+  status      String @default("unread")
+  createdAt   DateTime @default(now())
+}
