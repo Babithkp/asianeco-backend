@@ -28,6 +28,7 @@
   },
   "dependencies": {
     "@prisma/client": "^6.10.1",
+    "dotenv": "^16.6.0",
     "multer": "^2.0.1"
   }
 }

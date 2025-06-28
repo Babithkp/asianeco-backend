@@ -7,6 +7,14 @@ const express_1 = __importDefault(require("express"));
 const cors_1 = __importDefault(require("cors"));
 const app = (0, express_1.default)();
 app.use((0, cors_1.default)());
+app.use(express_1.default.json());
+
+app.use(express.json())
+// Routes
+app.use("/v1/admin", adminRouter);
+app.use("/v1/client", clientRouter);
+
+//Test Routes
 app.get("/", (req, res) => {
     res.send("Hello World!");
 });
