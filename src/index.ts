@@ -5,6 +5,14 @@ import clientRouter from "./router/client";
 import dotenv from "dotenv";
 import multer from "multer";
 import { createAdmin } from "./controller/admin";
+import expensesRouter from "./router/expenses";
+import settingsRouter from "./router/settings";
+import { initializeSettings } from "./controller/settings";
+
+// Global BigInt serialization fix
+(BigInt.prototype as any).toJSON = function() {
+    return this.toString();
+};
 
 const app = express();
 
@@ -19,6 +27,7 @@ const upload = multer({ storage });
 
 
 createAdmin();
+initializeSettings();
 // Test routes
 app.get("/", (req, res) => {
   res.send("Hello World!");
@@ -30,6 +39,10 @@ app.get("/", (req, res) => {
 app.use("/v1/admin", adminRouter);
 
 app.use("/v1/client", clientRouter);
+
+app.use("/v1/expenses", expensesRouter);
+
+app.use('/v1/settings', settingsRouter)
 
 
 
