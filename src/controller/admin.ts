@@ -7,6 +7,12 @@ const prisma = new PrismaClient();
 
 export const adminLogin = async (req: Request, res: Response) => {
     const { username, password } = req.body;
+    if(!username || !password) {
+        res.status(400).json({
+            message: "Username and password are required",
+        })
+        return;
+    }
     try {
         const user = await prisma.admin.findUnique({
             where: {

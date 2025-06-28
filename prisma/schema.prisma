@@ -37,7 +37,8 @@ model Settings {
 
 model Client {
   id            String    @id @default(auto()) @map("_id") @db.ObjectId
-  name          String
+  name          String    @unique
+  GSTIN         String
   contactPerson String
   email         String
   contactNumber BigInt
@@ -52,7 +53,7 @@ model Client {
 
 model Expenses {
   id            String   @id @default(auto()) @map("_id") @db.ObjectId
-  ExpenseId     BigInt
+  expenseId     BigInt
   description   String
   date          DateTime
   category      String
@@ -66,6 +67,7 @@ model Expenses {
 model Quote {
   id            String   @id @default(auto()) @map("_id") @db.ObjectId
   quoteId       String
+  date          DateTime
   dueDate       DateTime
   customerName  String
   contactNumber BigInt
