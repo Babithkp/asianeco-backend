@@ -76,7 +76,7 @@ export const updateSettings = async (req: Request, res: Response) => {
                 ...(HSN !== undefined && { HSN }),
                 ...(bankName && { bankName }),
                 ...(AccountNo && { AccountNo: BigInt(AccountNo) }),
-                ...(IFSC && { IFSC: BigInt(IFSC) }),
+                ...(IFSC && { IFSC }),
                 ...(invoiceSequence && { invoiceSequence: BigInt(invoiceSequence) }),
                 ...(quotationSequence && { quotationSequence: BigInt(quotationSequence) }),
                 ...(expenseSequence && { expenseSequence: BigInt(expenseSequence) }),

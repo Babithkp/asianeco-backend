@@ -9,6 +9,11 @@ import expensesRouter from "./router/expenses";
 import settingsRouter from "./router/settings";
 import { initializeSettings } from "./controller/settings";
 
+// Global BigInt serialization fix
+(BigInt.prototype as any).toJSON = function() {
+    return this.toString();
+};
+
 const app = express();
 
 dotenv.config();
