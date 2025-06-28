@@ -30,9 +30,9 @@ model Settings {
   bankName          String
   AccountNo         BigInt
   IFSC              BigInt
-  invoiceSequence   BigInt
-  quotationSequence BigInt
-  expenseSequence   BigInt
+  invoiceSequence   BigInt @default(1000)
+  quotationSequence BigInt @default(1000)
+  expenseSequence   BigInt @default(1000)
 }
 
 model Client {
@@ -46,7 +46,7 @@ model Client {
   city          String
   state         String
   pincode       Int
-  creditLimit   BigInt
+  creditLimit   Float
   quotations    Quote[]
   invoices      Invoice[]
 }
