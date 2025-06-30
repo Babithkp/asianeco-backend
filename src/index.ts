@@ -18,7 +18,7 @@ const storage = multer.memoryStorage();
 const upload = multer({ storage });
 
 
-createAdmin();
+// createAdmin();
 // Test routes
 app.get("/", (req, res) => {
   res.send("Hello World!");
