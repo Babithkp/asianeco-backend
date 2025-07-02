@@ -7,11 +7,16 @@ import { createAdmin } from "./controller/admin";
 import expensesRouter from "./router/expenses";
 import settingsRouter from "./router/settings";
 import { initializeSettings } from "./controller/settings";
+import quotationRouter from "./router/quotation";
+import invoiceRouter from "./router/invoice";
+import itemRouter from "./router/item";
 
 // Global BigInt serialization fix
 (BigInt.prototype as any).toJSON = function () {
   return this.toString();
 };
+
+
 
 const app = express();
 

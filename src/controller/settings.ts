@@ -63,7 +63,7 @@ export const updateSettings = async (req: Request, res: Response) => {
             return;
         }
 
-        prisma.settings.update({
+        await prisma.settings.update({
             where: {
                 id: existingSettings.id,
             },
@@ -129,7 +129,7 @@ export const getExpenseId = async (req: Request, res: Response) => {
             return;
         }
 
-        const expenseId = settings.expenseSequence.toString();
+        const expenseId = settings.expenseSequence;
 
         res.status(200).json({
             message: "Expense ID retrieved successfully",
@@ -155,7 +155,7 @@ export const getInvoiceId = async (req: Request, res: Response) => {
             return;
         }
 
-        const invoiceId = settings.invoiceSequence.toString();
+        const invoiceId = settings.invoiceSequence;
 
         res.status(200).json({
             message: "Invoice ID retrieved successfully",
@@ -181,7 +181,7 @@ export const getQuotationId = async (req: Request, res: Response) => {
             return;
         }
 
-        const quotationId = settings.quotationSequence.toString();
+        const quotationId = settings.quotationSequence;
 
         res.status(200).json({
             message: "Quotation ID retrieved successfully",
