@@ -1,4 +1,4 @@
-import { Request, Response } from "express";import { PrismaClient } from "@prisma/client";
+import { Request, Response } from "express"; import { PrismaClient } from "@prisma/client";
 
 const prisma = new PrismaClient();
 
@@ -86,6 +86,13 @@ export const updateClient = async (req: Request, res: Response) => {
     pincode,
     creditLimit,
   } = req.body;
+
+  if (!name || !contactPerson || !email || !contactNumber || !address || !city || !state || !pincode) {
+    res.status(401).json({
+      message: "All required fields must be provided",
+    });
+    return;
+  }
 
   if (!id) {
     res.status(401).json({
@@ -188,7 +195,7 @@ export const getAllClients = async (req: Request, res: Response) => {
 
     res.status(200).json({
       message: "Clients retrieved successfully",
-      clients: clients ?? [],
+      data: clients ?? [],
     });
   } catch (error) {
     res.status(400).json({

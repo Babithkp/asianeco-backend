@@ -29,7 +29,7 @@ model Settings {
   HSN               String
   bankName          String
   AccountNo         BigInt
-  IFSC              BigInt
+  IFSC              String
   invoiceSequence   BigInt @default(1000)
   quotationSequence BigInt @default(1000)
   expenseSequence   BigInt @default(1000)
