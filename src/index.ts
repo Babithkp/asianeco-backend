@@ -8,11 +8,16 @@ import { createAdmin } from "./controller/admin";
 import expensesRouter from "./router/expenses";
 import settingsRouter from "./router/settings";
 import { initializeSettings } from "./controller/settings";
+import quotationRouter from "./router/quotation";
+import invoiceRouter from "./router/invoice";
+import itemRouter from "./router/item";
 
 // Global BigInt serialization fix
 (BigInt.prototype as any).toJSON = function() {
     return this.toString();
 };
+
+
 
 const app = express();
 
@@ -28,6 +33,7 @@ const upload = multer({ storage });
 
 createAdmin();
 initializeSettings();
+
 // Test routes
 app.get("/", (req, res) => {
   res.send("Hello World!");
@@ -42,7 +48,13 @@ app.use("/v1/client", clientRouter);
 
 app.use("/v1/expenses", expensesRouter);
 
-app.use('/v1/settings', settingsRouter)
+app.use('/v1/settings', settingsRouter);
+
+app.use("/v1/quotation", quotationRouter);
+
+app.use("/v1/invoice", invoiceRouter);
+
+app.use("/v1/item", itemRouter);
 
 
 

@@ -47,6 +47,7 @@ model Client {
   state         String
   pincode       Int
   creditLimit   Float
+  outstanding   Float @default(0)
   quotations    Quote[]
   invoices      Invoice[]
 }
@@ -82,12 +83,12 @@ model Quote {
 model Item {
   id            String   @id @default(auto()) @map("_id") @db.ObjectId
   itemName      String
-  category      BigInt
+  category      String
   supplerName   String
   purchasePrice Float
   sellingPrice  Float
   measurement   Float
-  purchaseQty   BigInt
+  purchaseQty   Int
   tax           String
   description   String
   Invoice       Invoice? @relation(fields: [invoiceId], references: [id])
@@ -103,13 +104,13 @@ model Invoice {
   dueDate         DateTime
   customerName    String
   customerAddress String
-  customerGSTIN   BigInt
+  customerGSTIN   String
   contactNumber   BigInt
-  email           BigInt
-  discount        BigInt
-  subTotal        BigInt
+  email           String
+  discount        String
+  subTotal        Float
   status          String
-  total           BigInt
+  total           Float
   items           Item[]
   payments        Payments[]
   Client          Client?    @relation(fields: [clientId], references: [id])
