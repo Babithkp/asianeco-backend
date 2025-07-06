@@ -9,7 +9,7 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
     });
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.updatePayment = exports.createPayment = void 0;
+exports.deletePayment = exports.updatePayment = exports.createPayment = void 0;
 const client_1 = require("@prisma/client");
 const prisma = new client_1.PrismaClient();
 const createPayment = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
@@ -159,3 +159,53 @@ const updatePayment = (req, res) => __awaiter(void 0, void 0, void 0, function* 
     }
 });
 exports.updatePayment = updatePayment;
+const deletePayment = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    const { id } = req.params;
+    if (!id) {
+        res.status(400).json({
+            message: "Payment ID is required",
+        });
+        return;
+    }
+    try {
+        // Check if payment exists
+        const existingPayment = yield prisma.payments.findUnique({
+            where: { id },
+        });
+        if (!existingPayment) {
+            res.status(203).json({
+                message: "Payment doesn't exist",
+            });
+            return;
+        }
+        const invoice = yield prisma.invoice.update({
+            where: { id: existingPayment.invoiceId },
+            data: {
+                pendingAmount: {
+                    increment: existingPayment.amount,
+                },
+            },
+        });
+        yield prisma.client.update({
+            where: { id: invoice.clientId },
+            data: {
+                outstanding: {
+                    increment: existingPayment.amount,
+                },
+            },
+        });
+        yield prisma.payments.delete({
+            where: { id },
+        });
+        res.status(200).json({
+            message: "Payment deleted successfully",
+        });
+    }
+    catch (error) {
+        console.error("Delete payment error:", error);
+        res.status(400).json({
+            message: "Failed to delete payment",
+        });
+    }
+});
+exports.deletePayment = deletePayment;

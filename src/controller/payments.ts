@@ -1,4 +1,5 @@
-import { Request, Response } from "express";import { PrismaClient } from "@prisma/client";
+import { Request, Response } from "express";
+import { PrismaClient } from "@prisma/client";
 
 const prisma = new PrismaClient();
 
@@ -175,6 +176,62 @@ export const updatePayment = async (req: Request, res: Response) => {
     console.error("Update payment error:", error);
     res.status(400).json({
       message: "Failed to update payment",
+    });
+  }
+};
+
+export const deletePayment = async (req: Request, res: Response) => {
+  const { id } = req.params;
+
+  if (!id) {
+    res.status(400).json({
+      message: "Payment ID is required",
+    });
+    return;
+  }
+
+  try {
+    // Check if payment exists
+    const existingPayment = await prisma.payments.findUnique({
+      where: { id },
+    });
+
+    if (!existingPayment) {
+      res.status(203).json({
+        message: "Payment doesn't exist",
+      });
+      return;
+    }
+
+    const invoice = await prisma.invoice.update({
+      where: { id: existingPayment.invoiceId! },
+      data: {
+        pendingAmount: {
+          increment: existingPayment.amount,
+        },
+      },
+    });
+
+    await prisma.client.update({
+      where: { id: invoice.clientId! },
+      data: {
+        outstanding: {
+          increment: existingPayment.amount,
+        },
+      },
+    });
+
+    await prisma.payments.delete({
+      where: { id },
+    });
+
+    res.status(200).json({
+      message: "Payment deleted successfully",
+    });
+  } catch (error) {
+    console.error("Delete payment error:", error);
+    res.status(400).json({
+      message: "Failed to delete payment",
     });
   }
 };

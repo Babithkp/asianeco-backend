@@ -29,6 +29,7 @@
   "dependencies": {
     "@prisma/client": "^6.10.1",
     "@types/nodemailer": "^6.4.17",
+    "backend": ".",
     "dotenv": "^16.6.0",
     "multer": "^2.0.1",
     "nodemailer": "^7.0.4",

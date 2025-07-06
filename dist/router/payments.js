@@ -8,4 +8,5 @@ const payments_1 = require("../controller/payments");
 const paymentsRouter = express_1.default.Router();
 paymentsRouter.post("/create", payments_1.createPayment);
 paymentsRouter.patch("/update/:id", payments_1.updatePayment);
+paymentsRouter.delete("/delete/:id", payments_1.deletePayment);
 exports.default = paymentsRouter;
