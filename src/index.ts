@@ -10,6 +10,9 @@ import { initializeSettings } from "./controller/settings";
 import quotationRouter from "./router/quotation";
 import invoiceRouter from "./router/invoice";
 import itemRouter from "./router/item";
+import { sendQuoteMail } from "./controller/quotation";
+import { sendInvoiceMail } from "./controller/invoice";
+import paymentsRouter from "./router/payments";
 
 // Global BigInt serialization fix
 (BigInt.prototype as any).toJSON = function () {
@@ -46,6 +49,17 @@ app.use("/v1/client", clientRouter);
 app.use("/v1/expenses", expensesRouter);
 
 app.use("/v1/settings", settingsRouter);
+
+app.use("/v1/item",itemRouter)
+
+app.use("/v1/quotes", quotationRouter);
+
+app.use("/v1/invoices", invoiceRouter);
+
+app.use("/v1/payments", paymentsRouter);
+
+app.post("/v1/quotes/sendMail/:email", upload.single("file"), sendQuoteMail);
+app.post("/v1/invoices/sendMail/:email", upload.single("file"), sendInvoiceMail);
 
 app.listen(3000, () => {
   console.log("Server is running on port 3000");

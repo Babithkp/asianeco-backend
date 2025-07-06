@@ -10,7 +10,7 @@ const invoiceRouter = express.Router();
 
 invoiceRouter.post("/create", createInvoice);
 invoiceRouter.patch("/update", updateInvoice);
-invoiceRouter.delete("/delete", deleteInvoice);
+invoiceRouter.post("/delete", deleteInvoice);
 invoiceRouter.get("/all", getAllInvoices);
 
 export default invoiceRouter;

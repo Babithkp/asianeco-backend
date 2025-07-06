@@ -20,19 +20,20 @@ model Admin {
 }
 
 model Settings {
-  id                String @id @default(auto()) @map("_id") @db.ObjectId
-  address           String
-  contactNumber     BigInt
-  email             String
-  website           String
-  GSTIN             String
-  HSN               String
-  bankName          String
-  AccountNo         BigInt
-  IFSC              String
-  invoiceSequence   BigInt @default(1000)
-  quotationSequence BigInt @default(1000)
-  expenseSequence   BigInt @default(1000)
+  id                     String @id @default(auto()) @map("_id") @db.ObjectId
+  address                String
+  contactNumber          String
+  alternateContactNumber String
+  email                  String
+  website                String
+  GSTIN                  String
+  HSN                    String
+  bankName               String
+  AccountNo              String
+  IFSC                   String
+  invoiceSequence        Int    @default(1000)
+  quotationSequence      Int    @default(1000)
+  expenseSequence        Int    @default(1000)
 }
 
 model Client {
@@ -41,43 +42,39 @@ model Client {
   GSTIN         String
   contactPerson String
   email         String
-  contactNumber BigInt
+  contactNumber String
   address       String
   city          String
   state         String
   pincode       Int
   creditLimit   Float
-  outstanding   Float @default(0)
+  outstanding   Float     @default(0)
   quotations    Quote[]
   invoices      Invoice[]
 }
 
 model Expenses {
   id            String   @id @default(auto()) @map("_id") @db.ObjectId
-  expenseId     BigInt
-  description   String
+  expenseId     String   @unique
+  title         String
   date          DateTime
   category      String
-  amount        BigInt
+  amount        Float
   amountInWords String
   paymentType   String
-  transactionId BigInt
-  note          String
+  transactionId String
+  description   String
 }
 
 model Quote {
-  id            String   @id @default(auto()) @map("_id") @db.ObjectId
-  quoteId       String
-  date          DateTime
-  dueDate       DateTime
-  customerName  String
-  contactNumber BigInt
-  email         String
-  discount      Float
-  amount        Float
-  items         Item[]
-  Client        Client?  @relation(fields: [clientId], references: [id])
-  clientId      String?  @db.ObjectId
+  id       String   @id @default(auto()) @map("_id") @db.ObjectId
+  quoteId  String
+  date     DateTime
+  dueDate  DateTime
+  amount   Float
+  items    Item[]
+  Client   Client?  @relation(fields: [clientId], references: [id])
+  clientId String?  @db.ObjectId
 }
 
 model Item {
@@ -87,8 +84,8 @@ model Item {
   supplerName   String
   purchasePrice Float
   sellingPrice  Float
-  measurement   Float
-  purchaseQty   Int
+  measurement   String
+  purchaseQty   Float
   tax           String
   description   String
   Invoice       Invoice? @relation(fields: [invoiceId], references: [id])
@@ -98,34 +95,29 @@ model Item {
 }
 
 model Invoice {
-  id              String     @id @default(auto()) @map("_id") @db.ObjectId
-  invoiceId       String
-  date            DateTime
-  dueDate         DateTime
-  customerName    String
-  customerAddress String
-  customerGSTIN   String
-  contactNumber   BigInt
-  email           String
-  discount        String
-  subTotal        Float
-  status          String
-  total           Float
-  items           Item[]
-  payments        Payments[]
-  Client          Client?    @relation(fields: [clientId], references: [id])
-  clientId        String?    @db.ObjectId
+  id            String     @id @default(auto()) @map("_id") @db.ObjectId
+  invoiceId     String
+  date          DateTime
+  dueDate       DateTime
+  discount      String
+  status        String
+  total         Float
+  items         Item[]
+  payments      Payments[]
+  pendingAmount Float      @default(0)
+  Client        Client?    @relation(fields: [clientId], references: [id])
+  clientId      String?    @db.ObjectId
 }
 
 model Payments {
   id            String   @id @default(auto()) @map("_id") @db.ObjectId
-  invoiceNumber String
+  invoiceNumber String 
   date          DateTime
   clientName    String
   amount        Float
   amountInWords String
   pendingAmount Float
-  transactionId BigInt
+  transactionId String
   paymentMode   String
   remarks       String
   Invoice       Invoice? @relation(fields: [invoiceId], references: [id], onDelete: Cascade)

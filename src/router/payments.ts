@@ -1,50 +1,9 @@
-import { Request, Response } from "express";
-import { PrismaClient } from "@prisma/client";
+import express from "express";
+import { createPayment, updatePayment } from "../controller/payments";
 
-const prisma = new PrismaClient();
+const  paymentsRouter = express.Router();
 
-export const createPayment = async (req: Request, res: Response) => {
-    const { invoiceNumber,
-        date,
-        clientName,
-        amount,
-        amountInWords,
-        pendingAmount,
-        transactionId,
-        paymentMode,
-        remarks, } = req.body;
-    
-    if (!invoiceNumber || !date || !clientName || !amount || !paymentMode || !transactionId || !amountInWords || !pendingAmount) {
-        res.status(400).json({
-            message: "All required fields must be provided",
-        });
-        return;
-    }
-    
-    try {
-        // Create payment record
-        await prisma.payments.create({
-            data: {
-                invoiceNumber,
-                date: new Date(date),
-                clientName,
-                amount: parseFloat(amount),
-                amountInWords,
-                pendingAmount: parseFloat(pendingAmount),
-                transactionId,
-                paymentMode,
-                remarks: remarks || "",
-            },
-        });
+paymentsRouter.post("/create", createPayment);
+paymentsRouter.patch("/update/:id", updatePayment);
 
-        res.status(201).json({
-            message: "Payment created successfully"
-        });
-        
-    } catch (error) {
-        console.error("Error creating payment:", error);
-        res.status(500).json({
-            message: "Internal server error",
-        });
-    }
-}
+export default paymentsRouter;

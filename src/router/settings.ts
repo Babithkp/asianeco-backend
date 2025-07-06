@@ -5,9 +5,9 @@ const settingsRouter = express.Router();
 
 settingsRouter.patch("/update", updateSettings);
 settingsRouter.get("/all", getSettings);
-settingsRouter.get("/expense-id", getExpenseId);
-settingsRouter.get("/invoice-id", getInvoiceId);
-settingsRouter.get("/quotation-id", getQuotationId);
+settingsRouter.get("/expenseId", getExpenseId);
+settingsRouter.get("/invoiceId", getInvoiceId);
+settingsRouter.get("/quotationId", getQuotationId);
 
 
 export default settingsRouter;
