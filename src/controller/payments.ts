@@ -1,5 +1,4 @@
-import { Request, Response } from "express";
-import { PrismaClient } from "@prisma/client";
+import { Request, Response } from "express";import { PrismaClient } from "@prisma/client";
 
 const prisma = new PrismaClient();
 
@@ -21,7 +20,6 @@ export const createPayment = async (req: Request, res: Response) => {
     !date ||
     !amount ||
     !amountInWords ||
-    !pendingAmount ||
     !transactionId ||
     !paymentMode ||
     !remarks ||
@@ -56,6 +54,7 @@ export const createPayment = async (req: Request, res: Response) => {
         pendingAmount: {
           decrement: payment.amount,
         },
+        status: parseFloat(pendingAmount) === 0 ? "Paid" : "Pending",
       },
     });
     const client = await prisma.client.findUnique({
@@ -149,6 +148,7 @@ export const updatePayment = async (req: Request, res: Response) => {
       where: { id: invoiceId },
       data: {
         pendingAmount: parseFloat(pendingAmount),
+        status: pendingAmount === 0 ? "Paid" : "Pending",
       },
     });
 
@@ -232,6 +232,36 @@ export const deletePayment = async (req: Request, res: Response) => {
     console.error("Delete payment error:", error);
     res.status(400).json({
       message: "Failed to delete payment",
+    });
+  }
+};
+
+export const getPayments = async (req: Request, res: Response) => {
+  try {
+    const payments = await prisma.payments.findMany({
+      take: 10,
+      include: {
+        Invoice: {
+          select: {
+            invoiceId: true,
+            Client: {
+              select: {
+                name: true,
+              },
+            },
+          },
+        },
+      },
+    });
+
+    res.status(200).json({
+      message: "Payments retrieved successfully",
+      data: payments,
+    });
+  } catch (error) {
+    console.error("Get payments error:", error);
+    res.status(400).json({
+      message: "Failed to retrieve payments",
     });
   }
 };

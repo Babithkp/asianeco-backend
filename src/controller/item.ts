@@ -1,4 +1,5 @@
-import { Request, Response } from "express";import { PrismaClient } from "@prisma/client";
+import { Request, Response } from "express";
+import { PrismaClient } from "@prisma/client";
 
 const prisma = new PrismaClient();
 
@@ -7,10 +8,8 @@ export const createItem = async (req: Request, res: Response) => {
     itemName,
     category,
     supplerName,
-    purchasePrice,
     sellingPrice,
     measurement,
-    purchaseQty,
     tax,
     description,
   } = req.body;
@@ -18,10 +17,8 @@ export const createItem = async (req: Request, res: Response) => {
     !itemName ||
     !category ||
     !supplerName ||
-    !purchasePrice ||
     !sellingPrice ||
     !measurement ||
-    !purchaseQty ||
     !tax
   ) {
     res.status(400).json({
@@ -48,10 +45,8 @@ export const createItem = async (req: Request, res: Response) => {
         itemName,
         category,
         supplerName,
-        purchasePrice: parseFloat(purchasePrice),
         sellingPrice: parseFloat(sellingPrice),
         measurement: measurement,
-        purchaseQty: parseFloat(purchaseQty || "0"),
         tax,
         description: description || "",
       },
@@ -74,10 +69,8 @@ export const updateItem = async (req: Request, res: Response) => {
     itemName,
     category,
     supplerName,
-    purchasePrice,
     sellingPrice,
     measurement,
-    purchaseQty,
     tax,
     description,
   } = req.body;
@@ -86,10 +79,8 @@ export const updateItem = async (req: Request, res: Response) => {
     !itemName ||
     !category ||
     !supplerName ||
-    !purchasePrice ||
     !sellingPrice ||
     !measurement ||
-    !purchaseQty ||
     !tax
   ) {
     res.status(400).json({
@@ -112,10 +103,8 @@ export const updateItem = async (req: Request, res: Response) => {
         itemName,
         category: category,
         supplerName,
-        purchasePrice: parseFloat(purchasePrice),
         sellingPrice: parseFloat(sellingPrice),
         measurement: measurement,
-        purchaseQty: parseFloat(purchaseQty),
         tax,
         description: description || "",
       },
@@ -174,18 +163,7 @@ export const deleteItem = async (req: Request, res: Response) => {
 export const getAllItems = async (req: Request, res: Response) => {
   try {
     const items = await prisma.item.findMany({
-      include:{
-        Quote: {
-          select:{
-            id:true
-          }
-        },
-        Invoice: {
-          select:{
-            id:true
-          }
-        }
-      },
+      include: {},
       orderBy: {
         itemName: "asc",
       },
@@ -199,6 +177,93 @@ export const getAllItems = async (req: Request, res: Response) => {
     console.error("Get items error:", error);
     res.status(500).json({
       message: "Failed to retrieve items",
+    });
+  }
+};
+
+export const createPurchase = async (req: Request, res: Response) => {
+  const {
+    itemName,
+    date,
+    purchasePrice,
+    quantity,
+    amount,
+    paymentType,
+    transactionId,
+  } = req.body;
+
+  console.log(req.body);
+
+  if (
+    !itemName ||
+    !date ||
+    !purchasePrice ||
+    !quantity ||
+    !amount ||
+    !paymentType ||
+    !transactionId
+  ) {
+    res.status(400).json({
+      message: "All required fields must be provided",
+    });
+    return;
+  }
+
+  try {
+    await prisma.purchase.create({
+      data: {
+        itemId: itemName,
+        date: new Date(date),
+        purchasePrice: parseFloat(purchasePrice),
+        quantity: parseFloat(quantity),
+        amount: parseFloat(amount),
+        paymentType: paymentType,
+        transactionId: transactionId,
+      },
+    });
+
+    await prisma.item.update({
+      where: { id: itemName },
+      data: {
+        quantity: {
+          increment: parseFloat(quantity),
+        },
+      },
+    });
+
+    res.status(200).json({
+      message: "Purchase created successfully",
+    });
+  } catch (error) {
+    console.error("Create purchase error:", error);
+    res.status(500).json({
+      message: "Failed to create purchase",
+    });
+    return;
+  }
+};
+
+
+export const getAllPurchases = async (req: Request, res: Response) => {
+  try {
+    const purchases = await prisma.purchase.findMany({
+      include:{
+        item:{
+          select:{
+            itemName: true,
+          }
+        }
+      }
+    });
+
+    res.status(200).json({
+      message: "Purchases retrieved successfully",
+      data: purchases,
+    });
+  } catch (error) {
+    console.error("Get purchases error:", error);
+    res.status(500).json({
+      message: "Failed to retrieve purchases",
     });
   }
 };

@@ -9,7 +9,7 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
     });
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.deletePayment = exports.updatePayment = exports.createPayment = void 0;
+exports.getPayments = exports.deletePayment = exports.updatePayment = exports.createPayment = void 0;
 const client_1 = require("@prisma/client");
 const prisma = new client_1.PrismaClient();
 const createPayment = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
@@ -17,7 +17,6 @@ const createPayment = (req, res) => __awaiter(void 0, void 0, void 0, function* 
     if (!date ||
         !amount ||
         !amountInWords ||
-        !pendingAmount ||
         !transactionId ||
         !paymentMode ||
         !remarks ||
@@ -50,6 +49,7 @@ const createPayment = (req, res) => __awaiter(void 0, void 0, void 0, function* 
                 pendingAmount: {
                     decrement: payment.amount,
                 },
+                status: parseFloat(pendingAmount) === 0 ? "Paid" : "Pending",
             },
         });
         const client = yield prisma.client.findUnique({
@@ -129,6 +129,7 @@ const updatePayment = (req, res) => __awaiter(void 0, void 0, void 0, function* 
             where: { id: invoiceId },
             data: {
                 pendingAmount: parseFloat(pendingAmount),
+                status: pendingAmount === 0 ? "Paid" : "Pending",
             },
         });
         const client = yield prisma.client.findUnique({
@@ -209,3 +210,33 @@ const deletePayment = (req, res) => __awaiter(void 0, void 0, void 0, function* 
     }
 });
 exports.deletePayment = deletePayment;
+const getPayments = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    try {
+        const payments = yield prisma.payments.findMany({
+            take: 10,
+            include: {
+                Invoice: {
+                    select: {
+                        invoiceId: true,
+                        Client: {
+                            select: {
+                                name: true,
+                            },
+                        },
+                    },
+                },
+            },
+        });
+        res.status(200).json({
+            message: "Payments retrieved successfully",
+            data: payments,
+        });
+    }
+    catch (error) {
+        console.error("Get payments error:", error);
+        res.status(400).json({
+            message: "Failed to retrieve payments",
+        });
+    }
+});
+exports.getPayments = getPayments;

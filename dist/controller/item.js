@@ -9,18 +9,16 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
     });
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.getAllItems = exports.deleteItem = exports.updateItem = exports.createItem = void 0;
+exports.getAllPurchases = exports.createPurchase = exports.getAllItems = exports.deleteItem = exports.updateItem = exports.createItem = void 0;
 const client_1 = require("@prisma/client");
 const prisma = new client_1.PrismaClient();
 const createItem = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
-    const { itemName, category, supplerName, purchasePrice, sellingPrice, measurement, purchaseQty, tax, description, } = req.body;
+    const { itemName, category, supplerName, sellingPrice, measurement, tax, description, } = req.body;
     if (!itemName ||
         !category ||
         !supplerName ||
-        !purchasePrice ||
         !sellingPrice ||
         !measurement ||
-        !purchaseQty ||
         !tax) {
         res.status(400).json({
             message: "All required fields must be provided",
@@ -43,10 +41,8 @@ const createItem = (req, res) => __awaiter(void 0, void 0, void 0, function* () 
                 itemName,
                 category,
                 supplerName,
-                purchasePrice: parseFloat(purchasePrice),
                 sellingPrice: parseFloat(sellingPrice),
                 measurement: measurement,
-                purchaseQty: parseFloat(purchaseQty || "0"),
                 tax,
                 description: description || "",
             },
@@ -65,14 +61,12 @@ const createItem = (req, res) => __awaiter(void 0, void 0, void 0, function* () 
 exports.createItem = createItem;
 const updateItem = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     const { id } = req.params;
-    const { itemName, category, supplerName, purchasePrice, sellingPrice, measurement, purchaseQty, tax, description, } = req.body;
+    const { itemName, category, supplerName, sellingPrice, measurement, tax, description, } = req.body;
     if (!itemName ||
         !category ||
         !supplerName ||
-        !purchasePrice ||
         !sellingPrice ||
         !measurement ||
-        !purchaseQty ||
         !tax) {
         res.status(400).json({
             message: "All required fields must be provided",
@@ -92,10 +86,8 @@ const updateItem = (req, res) => __awaiter(void 0, void 0, void 0, function* () 
                 itemName,
                 category: category,
                 supplerName,
-                purchasePrice: parseFloat(purchasePrice),
                 sellingPrice: parseFloat(sellingPrice),
                 measurement: measurement,
-                purchaseQty: parseFloat(purchaseQty),
                 tax,
                 description: description || "",
             },
@@ -150,18 +142,7 @@ exports.deleteItem = deleteItem;
 const getAllItems = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     try {
         const items = yield prisma.item.findMany({
-            include: {
-                Quote: {
-                    select: {
-                        id: true
-                    }
-                },
-                Invoice: {
-                    select: {
-                        id: true
-                    }
-                }
-            },
+            include: {},
             orderBy: {
                 itemName: "asc",
             },
@@ -179,3 +160,75 @@ const getAllItems = (req, res) => __awaiter(void 0, void 0, void 0, function* ()
     }
 });
 exports.getAllItems = getAllItems;
+const createPurchase = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    const { itemName, date, purchasePrice, quantity, amount, paymentType, transactionId, } = req.body;
+    console.log(req.body);
+    if (!itemName ||
+        !date ||
+        !purchasePrice ||
+        !quantity ||
+        !amount ||
+        !paymentType ||
+        !transactionId) {
+        res.status(400).json({
+            message: "All required fields must be provided",
+        });
+        return;
+    }
+    try {
+        yield prisma.purchase.create({
+            data: {
+                itemId: itemName,
+                date: new Date(date),
+                purchasePrice: parseFloat(purchasePrice),
+                quantity: parseFloat(quantity),
+                amount: parseFloat(amount),
+                paymentType: paymentType,
+                transactionId: transactionId,
+            },
+        });
+        yield prisma.item.update({
+            where: { id: itemName },
+            data: {
+                quantity: {
+                    increment: parseFloat(quantity),
+                },
+            },
+        });
+        res.status(200).json({
+            message: "Purchase created successfully",
+        });
+    }
+    catch (error) {
+        console.error("Create purchase error:", error);
+        res.status(500).json({
+            message: "Failed to create purchase",
+        });
+        return;
+    }
+});
+exports.createPurchase = createPurchase;
+const getAllPurchases = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    try {
+        const purchases = yield prisma.purchase.findMany({
+            include: {
+                item: {
+                    select: {
+                        itemName: true,
+                    }
+                }
+            }
+        });
+        res.status(200).json({
+            message: "Purchases retrieved successfully",
+            data: purchases,
+        });
+    }
+    catch (error) {
+        console.error("Get purchases error:", error);
+        res.status(500).json({
+            message: "Failed to retrieve purchases",
+        });
+    }
+});
+exports.getAllPurchases = getAllPurchases;

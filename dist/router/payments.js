@@ -9,4 +9,5 @@ const paymentsRouter = express_1.default.Router();
 paymentsRouter.post("/create", payments_1.createPayment);
 paymentsRouter.patch("/update/:id", payments_1.updatePayment);
 paymentsRouter.delete("/delete/:id", payments_1.deletePayment);
+paymentsRouter.get("/", payments_1.getPayments);
 exports.default = paymentsRouter;

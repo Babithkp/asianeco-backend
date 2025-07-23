@@ -15,7 +15,6 @@ const quoteMail_1 = require("./mails/quoteMail");
 const prisma = new client_1.PrismaClient();
 const createQuote = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     const { date, dueDate, amount, Client, items, quoteId } = req.body;
-    console.log(req.body);
     if (!date || !dueDate || !Client || !amount || !quoteId || !items) {
         res.status(400).json({
             message: "All required fields must be provided",
@@ -42,20 +41,26 @@ const createQuote = (req, res) => __awaiter(void 0, void 0, void 0, function* ()
             });
             return;
         }
-        yield prisma.quote.create({
+        const quote = yield prisma.quote.create({
             data: {
                 quoteId,
                 date: new Date(date),
                 dueDate: new Date(dueDate),
                 amount: parseFloat(amount),
                 clientId: Client.id,
-                items: {
-                    connect: (items === null || items === void 0 ? void 0 : items.map((item) => ({
-                        id: item.id,
-                    }))) || [],
-                },
             },
         });
+        Promise.all(items.map((item) => __awaiter(void 0, void 0, void 0, function* () {
+            yield prisma.quoteItem.create({
+                data: {
+                    quoteId: quote.id,
+                    itemId: item.itemId,
+                    quantity: parseFloat(item.quantity),
+                    amount: parseFloat(item.amount),
+                    tax: item.tax,
+                },
+            });
+        })));
         // Update quotation sequence in settings
         yield prisma.settings.update({
             where: { id: settings.id },
@@ -88,28 +93,36 @@ const updateQuote = (req, res) => __awaiter(void 0, void 0, void 0, function* ()
             });
             return;
         }
-        yield prisma.quote.update({
-            where: { id },
-            data: {
-                items: {
-                    set: [],
-                },
+        const itemQuote = yield prisma.quoteItem.findMany({
+            where: {
+                quoteId: id,
             },
         });
-        yield prisma.quote.update({
+        Promise.all(itemQuote.map((item) => __awaiter(void 0, void 0, void 0, function* () {
+            yield prisma.quoteItem.delete({
+                where: { quoteId_itemId: { itemId: item.itemId, quoteId: id } },
+            });
+        })));
+        const quote = yield prisma.quote.update({
             where: { id },
             data: {
                 date: new Date(date),
                 dueDate: new Date(dueDate),
                 amount: parseFloat(amount),
                 clientId: Client.id,
-                items: {
-                    connect: (items === null || items === void 0 ? void 0 : items.map((item) => ({
-                        id: item.id,
-                    }))) || [],
-                },
             },
         });
+        Promise.all(items.map((item) => __awaiter(void 0, void 0, void 0, function* () {
+            yield prisma.quoteItem.create({
+                data: {
+                    quoteId: quote.id,
+                    itemId: item.itemId,
+                    quantity: parseFloat(item.quantity),
+                    amount: parseFloat(item.amount),
+                    tax: item.tax,
+                },
+            });
+        })));
         res.status(200).json({
             message: "Quote updated successfully",
         });
@@ -161,7 +174,11 @@ const getAllQuotes = (req, res) => __awaiter(void 0, void 0, void 0, function* (
     try {
         const quotes = yield prisma.quote.findMany({
             include: {
-                items: true,
+                QuoteItem: {
+                    include: {
+                        item: true,
+                    },
+                },
                 Client: true,
             },
             orderBy: {

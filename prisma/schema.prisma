@@ -67,51 +67,87 @@ model Expenses {
 }
 
 model Quote {
-  id       String   @id @default(auto()) @map("_id") @db.ObjectId
-  quoteId  String
-  date     DateTime
-  dueDate  DateTime
+  id        String      @id @default(auto()) @map("_id") @db.ObjectId
+  quoteId   String
+  date      DateTime
+  dueDate   DateTime
+  amount    Float
+  Client    Client?     @relation(fields: [clientId], references: [id])
+  clientId  String?     @db.ObjectId
+  QuoteItem QuoteItem[]
+}
+
+model QuoteItem {
+  id      String @id @default(auto()) @map("_id") @db.ObjectId
+  quote   Quote  @relation(fields: [quoteId], references: [id],onDelete: Cascade)
+  quoteId String @db.ObjectId
+  item   Item   @relation(fields: [itemId], references: [id])
+  itemId String @db.ObjectId
   amount   Float
-  items    Item[]
-  Client   Client?  @relation(fields: [clientId], references: [id])
-  clientId String?  @db.ObjectId
+  quantity Float
+  tax      String
+
+  @@unique([quoteId, itemId])
 }
 
 model Item {
+  id           String        @id @default(auto()) @map("_id") @db.ObjectId
+  itemName     String
+  category     String
+  supplerName  String
+  sellingPrice Float
+  measurement  String
+  quantity     Float         @default(0)
+  tax          String
+  description  String
+  Purchase     Purchase[]
+  ItemInvoice  ItemInvoice[]
+  QuoteItem    QuoteItem[]
+}
+
+model ItemInvoice {
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId
+  item      Item     @relation(fields: [itemId], references: [id])
+  itemId    String   @db.ObjectId
+  invoice   Invoice? @relation(fields: [invoiceId], references: [id],onDelete: Cascade)
+  invoiceId String   @db.ObjectId
+  amount    Float
+  quantity  Float
+  tax       String
+
+  @@unique([itemId, invoiceId])
+}
+
+model Purchase {
   id            String   @id @default(auto()) @map("_id") @db.ObjectId
-  itemName      String
-  category      String
-  supplerName   String
+  item          Item     @relation(fields: [itemId], references: [id])
+  itemId        String   @db.ObjectId
   purchasePrice Float
-  sellingPrice  Float
-  measurement   String
-  purchaseQty   Float
-  tax           String
-  description   String
-  Invoice       Invoice? @relation(fields: [invoiceId], references: [id])
-  invoiceId     String?  @db.ObjectId
-  Quote         Quote?   @relation(fields: [quoteId], references: [id])
-  quoteId       String?  @db.ObjectId
+  quantity      Float
+  date          DateTime
+  amount        Float
+  paymentType   String
+  transactionId String
 }
 
 model Invoice {
-  id            String     @id @default(auto()) @map("_id") @db.ObjectId
+  id            String        @id @default(auto()) @map("_id") @db.ObjectId
   invoiceId     String
   date          DateTime
   dueDate       DateTime
   discount      String
-  status        String
+  status        String        @default("Pending")
   total         Float
-  items         Item[]
   payments      Payments[]
-  pendingAmount Float      @default(0)
-  Client        Client?    @relation(fields: [clientId], references: [id])
-  clientId      String?    @db.ObjectId
+  pendingAmount Float         @default(0)
+  Client        Client?       @relation(fields: [clientId], references: [id])
+  clientId      String?       @db.ObjectId
+  ItemInvoice   ItemInvoice[]
 }
 
 model Payments {
   id            String   @id @default(auto()) @map("_id") @db.ObjectId
-  invoiceNumber String 
+  invoiceNumber String
   date          DateTime
   clientName    String
   amount        Float

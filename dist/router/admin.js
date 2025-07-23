@@ -7,4 +7,7 @@ const express_1 = __importDefault(require("express"));
 const admin_1 = require("../controller/admin");
 const adminRouter = express_1.default.Router();
 adminRouter.post("/login", admin_1.adminLogin);
+adminRouter.get("/notifications", admin_1.getAllNotification);
+adminRouter.patch("/notifications/:id", admin_1.updateNotificationStatus);
+adminRouter.delete("/notifications/:id", admin_1.deleteNotification);
 exports.default = adminRouter;

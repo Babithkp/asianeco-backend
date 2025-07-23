@@ -10,4 +10,5 @@ invoiceRouter.post("/create", invoice_1.createInvoice);
 invoiceRouter.patch("/update", invoice_1.updateInvoice);
 invoiceRouter.post("/delete", invoice_1.deleteInvoice);
 invoiceRouter.get("/all", invoice_1.getAllInvoices);
+invoiceRouter.post("/getByDate", invoice_1.getInvoiceByDate);
 exports.default = invoiceRouter;

@@ -10,4 +10,6 @@ itemRouter.post("/create", item_1.createItem);
 itemRouter.patch("/update/:id", item_1.updateItem);
 itemRouter.delete("/delete/:id", item_1.deleteItem);
 itemRouter.get("/all", item_1.getAllItems);
+itemRouter.post("/purchase", item_1.createPurchase);
+itemRouter.get("/purchases", item_1.getAllPurchases);
 exports.default = itemRouter;

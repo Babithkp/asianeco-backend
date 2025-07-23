@@ -1,12 +1,10 @@
-import { Request, Response } from "express";
-import { PrismaClient } from "@prisma/client";
+import { Request, Response } from "express";import { PrismaClient } from "@prisma/client";
 import { InvoiceMailBody, sendInvoiceMailToClient } from "./mails/invoiceMail";
 
 const prisma = new PrismaClient();
 
 export const createInvoice = async (req: Request, res: Response) => {
-  const { date, dueDate, discount, status, total, items, Client, invoiceId } =
-    req.body;
+  const { date, dueDate, discount, total, items, Client, invoiceId } = req.body;
 
   if (!date || !dueDate || !total || !invoiceId || !items || !Client) {
     res.status(400).json({
@@ -25,24 +23,47 @@ export const createInvoice = async (req: Request, res: Response) => {
       return;
     }
 
-    await prisma.invoice.create({
+    const invoice = await prisma.invoice.create({
       data: {
         invoiceId,
         date: new Date(date),
         dueDate: new Date(dueDate),
         discount: discount || 0,
-        status: status || "pending",
         total: parseFloat(total),
         clientId: Client.id,
         pendingAmount: parseFloat(total),
-        items: {
-          connect:
-            items?.map((item: any) => ({
-              id: item.id,
-            })) || [],
-        },
       },
     });
+
+    Promise.all(
+      items.map(async (item: any) => {
+        await prisma.itemInvoice.create({
+          data: {
+            itemId: item.itemId,
+            invoiceId: invoice.id,
+            amount: parseFloat(item.amount),
+            quantity: parseFloat(item.quantity),
+            tax: item.tax,
+          },
+        });
+        const items = await prisma.item.findUnique({
+          where: { id: item.itemId },
+        });
+        if (items && items?.quantity < parseFloat(item.quantity)) {
+          res.status(204).json({
+            message: "Out of stock",
+          });
+          return;
+        } else if (items) {
+          await prisma.item.update({
+            where: { id: item.itemId },
+            data: {
+              quantity: items.quantity - parseFloat(item.quantity),
+            },
+          });
+        }
+      })
+    );
 
     // Update invoice sequence in settings
     await prisma.settings.update({
@@ -87,8 +108,7 @@ export const createInvoice = async (req: Request, res: Response) => {
 };
 
 export const updateInvoice = async (req: Request, res: Response) => {
-  const { id, date, dueDate, discount, status, total, Client, items } =
-    req.body;
+  const { id, date, dueDate, discount, total, Client, items } = req.body;
 
   if (!id || !date || !dueDate || !total || !Client) {
     res.status(400).json({
@@ -110,14 +130,27 @@ export const updateInvoice = async (req: Request, res: Response) => {
       return;
     }
 
-    await prisma.invoice.update({
-      where: { id },
-      data: {
-        items: {
-          set: [],
-        },
+    const itemInvoice = await prisma.itemInvoice.findMany({
+      where: {
+        invoiceId: id,
       },
     });
+
+    Promise.all(
+      itemInvoice.map(async (item: any) => {
+        await prisma.item.update({
+          where: { id: item.itemId },
+          data: {
+            quantity: {
+              increment: item.quantity,
+            },
+          },
+        });
+        await prisma.itemInvoice.delete({
+          where: { itemId_invoiceId: { itemId: item.itemId, invoiceId: id } },
+        });
+      })
+    );
 
     let oldPayments = 0;
 
@@ -134,18 +167,41 @@ export const updateInvoice = async (req: Request, res: Response) => {
         date: new Date(date),
         dueDate: new Date(dueDate),
         discount: discount || 0,
-        status: status || "pending",
         total: parseFloat(total),
         clientId: Client.id,
         pendingAmount: parseFloat(total) - oldPayments,
-        items: {
-          connect:
-            items?.map((item: any) => ({
-              id: item.id,
-            })) || [],
-        },
       },
     });
+
+    Promise.all(
+      items.map(async (item: any) => {
+        await prisma.itemInvoice.create({
+          data: {
+            itemId: item.itemId,
+            invoiceId: id,
+            amount: parseFloat(item.amount),
+            quantity: parseFloat(item.quantity),
+            tax: item.tax,
+          },
+        });
+        const items = await prisma.item.findUnique({
+          where: { id: item.itemId },
+        });
+        if (items && items?.quantity < parseFloat(item.quantity)) {
+          res.status(204).json({
+            message: "Item not found",
+          });
+          return;
+        } else if (items) {
+          await prisma.item.update({
+            where: { id: item.itemId },
+            data: {
+              quantity: items.quantity - parseFloat(item.quantity),
+            },
+          });
+        }
+      })
+    );
 
     // Subtract the old invoice total from client's outstanding and update
     if (existingInvoice.clientId && existingInvoice.clientId !== Client.id) {
@@ -233,6 +289,9 @@ export const updateInvoice = async (req: Request, res: Response) => {
 export const deleteInvoice = async (req: Request, res: Response) => {
   const { id } = req.body;
 
+  console.log(id);
+  
+
   if (!id) {
     res.status(400).json({
       message: "Invoice ID is required",
@@ -253,6 +312,31 @@ export const deleteInvoice = async (req: Request, res: Response) => {
       return;
     }
 
+    const invoiceItems = await prisma.itemInvoice.findMany({
+      where: {
+        invoiceId: id,
+      },
+    });
+
+    if (invoiceItems) {
+      Promise.all(
+        invoiceItems.map(async (iteminvoice: any) => {
+          await prisma.item.update({
+            where: { id: iteminvoice.itemId },
+            data: {
+              quantity: {
+                increment: iteminvoice.quantity,
+              },
+            },
+          });
+        })
+      );
+    } else {
+      res.status(204).json({
+        message: "Invoice doesn't exist",
+      });
+      return;
+    }
     // Delete the invoice
     await prisma.invoice.delete({
       where: { id },
@@ -274,7 +358,7 @@ export const deleteInvoice = async (req: Request, res: Response) => {
       message: "Invoice deleted successfully",
     });
   } catch (error) {
-    console.error("Delete invoice error:", error);
+    console.log(error);
     res.status(400).json({
       message: "Failed to delete invoice",
     });
@@ -285,7 +369,11 @@ export const getAllInvoices = async (req: Request, res: Response) => {
   try {
     const invoices = await prisma.invoice.findMany({
       include: {
-        items: true,
+        ItemInvoice: {
+          include: {
+            item: true,
+          },
+        },
         Client: true,
         payments: true,
       },
@@ -343,6 +431,43 @@ export const sendInvoiceMail = async (req: Request, res: Response) => {
     console.error("Send invoice mail error:", error);
     res.status(400).json({
       message: "Failed to send invoice mail",
+    });
+  }
+};
+
+export const getInvoiceByDate = async (req: Request, res: Response) => {
+  const { from, to } = req.body;
+
+  if (!from || !to) {
+    res.status(400).json({
+      message: "All required fields must be provided",
+    });
+    return;
+  }
+  const adjustedTo = new Date(to);
+  adjustedTo.setDate(adjustedTo.getDate() + 1);
+
+  try {
+    const invoices = await prisma.invoice.findMany({
+      where: {
+        date: {
+          gte: new Date(from),
+          lte: adjustedTo,
+        },
+      },
+      include: {
+        Client: true,
+      },
+    });
+
+    res.status(200).json({
+      message: "Invoices retrieved successfully",
+      data: invoices,
+    });
+  } catch (error) {
+    console.error("Get invoices error:", error);
+    res.status(400).json({
+      message: "Failed to retrieve invoices",
     });
   }
 };

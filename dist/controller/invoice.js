@@ -9,12 +9,12 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
     });
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.sendInvoiceMail = exports.getAllInvoices = exports.deleteInvoice = exports.updateInvoice = exports.createInvoice = void 0;
+exports.getInvoiceByDate = exports.sendInvoiceMail = exports.getAllInvoices = exports.deleteInvoice = exports.updateInvoice = exports.createInvoice = void 0;
 const client_1 = require("@prisma/client");
 const invoiceMail_1 = require("./mails/invoiceMail");
 const prisma = new client_1.PrismaClient();
 const createInvoice = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
-    const { date, dueDate, discount, status, total, items, Client, invoiceId } = req.body;
+    const { date, dueDate, discount, total, items, Client, invoiceId } = req.body;
     if (!date || !dueDate || !total || !invoiceId || !items || !Client) {
         res.status(400).json({
             message: "All required fields must be provided",
@@ -30,23 +30,45 @@ const createInvoice = (req, res) => __awaiter(void 0, void 0, void 0, function* 
             });
             return;
         }
-        yield prisma.invoice.create({
+        const invoice = yield prisma.invoice.create({
             data: {
                 invoiceId,
                 date: new Date(date),
                 dueDate: new Date(dueDate),
                 discount: discount || 0,
-                status: status || "pending",
                 total: parseFloat(total),
                 clientId: Client.id,
                 pendingAmount: parseFloat(total),
-                items: {
-                    connect: (items === null || items === void 0 ? void 0 : items.map((item) => ({
-                        id: item.id,
-                    }))) || [],
-                },
             },
         });
+        Promise.all(items.map((item) => __awaiter(void 0, void 0, void 0, function* () {
+            yield prisma.itemInvoice.create({
+                data: {
+                    itemId: item.itemId,
+                    invoiceId: invoice.id,
+                    amount: parseFloat(item.amount),
+                    quantity: parseFloat(item.quantity),
+                    tax: item.tax,
+                },
+            });
+            const items = yield prisma.item.findUnique({
+                where: { id: item.itemId },
+            });
+            if (items && (items === null || items === void 0 ? void 0 : items.quantity) < parseFloat(item.quantity)) {
+                res.status(204).json({
+                    message: "Out of stock",
+                });
+                return;
+            }
+            else if (items) {
+                yield prisma.item.update({
+                    where: { id: item.itemId },
+                    data: {
+                        quantity: items.quantity - parseFloat(item.quantity),
+                    },
+                });
+            }
+        })));
         // Update invoice sequence in settings
         yield prisma.settings.update({
             where: { id: settings.id },
@@ -88,7 +110,7 @@ const createInvoice = (req, res) => __awaiter(void 0, void 0, void 0, function* 
 });
 exports.createInvoice = createInvoice;
 const updateInvoice = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
-    const { id, date, dueDate, discount, status, total, Client, items } = req.body;
+    const { id, date, dueDate, discount, total, Client, items } = req.body;
     if (!id || !date || !dueDate || !total || !Client) {
         res.status(400).json({
             message: "All required fields must be provided",
@@ -106,14 +128,24 @@ const updateInvoice = (req, res) => __awaiter(void 0, void 0, void 0, function* 
             });
             return;
         }
-        yield prisma.invoice.update({
-            where: { id },
-            data: {
-                items: {
-                    set: [],
-                },
+        const itemInvoice = yield prisma.itemInvoice.findMany({
+            where: {
+                invoiceId: id,
             },
         });
+        Promise.all(itemInvoice.map((item) => __awaiter(void 0, void 0, void 0, function* () {
+            yield prisma.item.update({
+                where: { id: item.itemId },
+                data: {
+                    quantity: {
+                        increment: item.quantity,
+                    },
+                },
+            });
+            yield prisma.itemInvoice.delete({
+                where: { itemId_invoiceId: { itemId: item.itemId, invoiceId: id } },
+            });
+        })));
         let oldPayments = 0;
         const payment = yield prisma.payments.findMany({
             where: { invoiceId: id },
@@ -127,17 +159,39 @@ const updateInvoice = (req, res) => __awaiter(void 0, void 0, void 0, function* 
                 date: new Date(date),
                 dueDate: new Date(dueDate),
                 discount: discount || 0,
-                status: status || "pending",
                 total: parseFloat(total),
                 clientId: Client.id,
                 pendingAmount: parseFloat(total) - oldPayments,
-                items: {
-                    connect: (items === null || items === void 0 ? void 0 : items.map((item) => ({
-                        id: item.id,
-                    }))) || [],
-                },
             },
         });
+        Promise.all(items.map((item) => __awaiter(void 0, void 0, void 0, function* () {
+            yield prisma.itemInvoice.create({
+                data: {
+                    itemId: item.itemId,
+                    invoiceId: id,
+                    amount: parseFloat(item.amount),
+                    quantity: parseFloat(item.quantity),
+                    tax: item.tax,
+                },
+            });
+            const items = yield prisma.item.findUnique({
+                where: { id: item.itemId },
+            });
+            if (items && (items === null || items === void 0 ? void 0 : items.quantity) < parseFloat(item.quantity)) {
+                res.status(204).json({
+                    message: "Item not found",
+                });
+                return;
+            }
+            else if (items) {
+                yield prisma.item.update({
+                    where: { id: item.itemId },
+                    data: {
+                        quantity: items.quantity - parseFloat(item.quantity),
+                    },
+                });
+            }
+        })));
         // Subtract the old invoice total from client's outstanding and update
         if (existingInvoice.clientId && existingInvoice.clientId !== Client.id) {
             let existingTotal = existingInvoice.pendingAmount;
@@ -218,6 +272,7 @@ const updateInvoice = (req, res) => __awaiter(void 0, void 0, void 0, function* 
 exports.updateInvoice = updateInvoice;
 const deleteInvoice = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     const { id } = req.body;
+    console.log(id);
     if (!id) {
         res.status(400).json({
             message: "Invoice ID is required",
@@ -231,6 +286,29 @@ const deleteInvoice = (req, res) => __awaiter(void 0, void 0, void 0, function* 
         });
         if (!existingInvoice) {
             res.status(203).json({
+                message: "Invoice doesn't exist",
+            });
+            return;
+        }
+        const invoiceItems = yield prisma.itemInvoice.findMany({
+            where: {
+                invoiceId: id,
+            },
+        });
+        if (invoiceItems) {
+            Promise.all(invoiceItems.map((iteminvoice) => __awaiter(void 0, void 0, void 0, function* () {
+                yield prisma.item.update({
+                    where: { id: iteminvoice.itemId },
+                    data: {
+                        quantity: {
+                            increment: iteminvoice.quantity,
+                        },
+                    },
+                });
+            })));
+        }
+        else {
+            res.status(204).json({
                 message: "Invoice doesn't exist",
             });
             return;
@@ -255,7 +333,7 @@ const deleteInvoice = (req, res) => __awaiter(void 0, void 0, void 0, function* 
         });
     }
     catch (error) {
-        console.error("Delete invoice error:", error);
+        console.log(error);
         res.status(400).json({
             message: "Failed to delete invoice",
         });
@@ -266,7 +344,11 @@ const getAllInvoices = (req, res) => __awaiter(void 0, void 0, void 0, function*
     try {
         const invoices = yield prisma.invoice.findMany({
             include: {
-                items: true,
+                ItemInvoice: {
+                    include: {
+                        item: true,
+                    },
+                },
                 Client: true,
                 payments: true,
             },
@@ -319,3 +401,38 @@ const sendInvoiceMail = (req, res) => __awaiter(void 0, void 0, void 0, function
     }
 });
 exports.sendInvoiceMail = sendInvoiceMail;
+const getInvoiceByDate = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    const { from, to } = req.body;
+    if (!from || !to) {
+        res.status(400).json({
+            message: "All required fields must be provided",
+        });
+        return;
+    }
+    const adjustedTo = new Date(to);
+    adjustedTo.setDate(adjustedTo.getDate() + 1);
+    try {
+        const invoices = yield prisma.invoice.findMany({
+            where: {
+                date: {
+                    gte: new Date(from),
+                    lte: adjustedTo,
+                },
+            },
+            include: {
+                Client: true,
+            },
+        });
+        res.status(200).json({
+            message: "Invoices retrieved successfully",
+            data: invoices,
+        });
+    }
+    catch (error) {
+        console.error("Get invoices error:", error);
+        res.status(400).json({
+            message: "Failed to retrieve invoices",
+        });
+    }
+});
+exports.getInvoiceByDate = getInvoiceByDate;

@@ -7,8 +7,6 @@ const prisma = new PrismaClient();
 export const createQuote = async (req: Request, res: Response) => {
   const { date, dueDate, amount, Client, items, quoteId } = req.body;
 
-  console.log(req.body);
-
   if (!date || !dueDate || !Client || !amount || !quoteId || !items) {
     res.status(400).json({
       message: "All required fields must be provided",
@@ -39,21 +37,29 @@ export const createQuote = async (req: Request, res: Response) => {
       return;
     }
 
-    await prisma.quote.create({
+    const quote = await prisma.quote.create({
       data: {
         quoteId,
         date: new Date(date),
         dueDate: new Date(dueDate),
         amount: parseFloat(amount),
         clientId: Client.id,
-        items: {
-          connect:
-            items?.map((item: any) => ({
-              id: item.id,
-            })) || [],
-        },
       },
     });
+
+    Promise.all(
+      items.map(async (item: any) => {
+        await prisma.quoteItem.create({
+          data: {
+            quoteId: quote.id,
+            itemId: item.itemId,
+            quantity: parseFloat(item.quantity),
+            amount: parseFloat(item.amount),
+            tax: item.tax,
+          },
+        });
+      })
+    );
 
     // Update quotation sequence in settings
     await prisma.settings.update({
@@ -90,30 +96,43 @@ export const updateQuote = async (req: Request, res: Response) => {
       return;
     }
 
-    await prisma.quote.update({
-      where: { id },
-      data: {
-        items: {
-          set: [],
-        },
+    const itemQuote = await prisma.quoteItem.findMany({
+      where: {
+        quoteId: id,
       },
     });
 
-    await prisma.quote.update({
+    Promise.all(
+      itemQuote.map(async (item: any) => {
+        await prisma.quoteItem.delete({
+          where: { quoteId_itemId: { itemId: item.itemId, quoteId: id } },
+        });
+      })
+    );
+
+    const quote = await prisma.quote.update({
       where: { id },
       data: {
         date: new Date(date),
         dueDate: new Date(dueDate),
         amount: parseFloat(amount),
         clientId: Client.id,
-        items: {
-          connect:
-            items?.map((item: any) => ({
-              id: item.id,
-            })) || [],
-        },
       },
     });
+
+    Promise.all(
+      items.map(async (item: any) => {
+        await prisma.quoteItem.create({
+          data: {
+            quoteId: quote.id,
+            itemId: item.itemId,
+            quantity: parseFloat(item.quantity),
+            amount: parseFloat(item.amount),
+            tax: item.tax,
+          },
+        });
+      })
+    );
 
     res.status(200).json({
       message: "Quote updated successfully",
@@ -169,7 +188,11 @@ export const getAllQuotes = async (req: Request, res: Response) => {
   try {
     const quotes = await prisma.quote.findMany({
       include: {
-        items: true,
+        QuoteItem: {
+          include: {
+            item: true,
+          },
+        },
         Client: true,
       },
       orderBy: {
