@@ -9,7 +9,7 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
     });
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.getAllPurchases = exports.createPurchase = exports.getAllItems = exports.deleteItem = exports.updateItem = exports.createItem = void 0;
+exports.deletePurchaseApi = exports.updatePurchase = exports.getAllPurchases = exports.createPurchase = exports.getAllItems = exports.deleteItem = exports.updateItem = exports.createItem = void 0;
 const client_1 = require("@prisma/client");
 const prisma = new client_1.PrismaClient();
 const createItem = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
@@ -162,7 +162,6 @@ const getAllItems = (req, res) => __awaiter(void 0, void 0, void 0, function* ()
 exports.getAllItems = getAllItems;
 const createPurchase = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     const { itemName, date, purchasePrice, quantity, amount, paymentType, transactionId, } = req.body;
-    console.log(req.body);
     if (!itemName ||
         !date ||
         !purchasePrice ||
@@ -214,10 +213,11 @@ const getAllPurchases = (req, res) => __awaiter(void 0, void 0, void 0, function
             include: {
                 item: {
                     select: {
+                        id: true,
                         itemName: true,
-                    }
-                }
-            }
+                    },
+                },
+            },
         });
         res.status(200).json({
             message: "Purchases retrieved successfully",
@@ -232,3 +232,134 @@ const getAllPurchases = (req, res) => __awaiter(void 0, void 0, void 0, function
     }
 });
 exports.getAllPurchases = getAllPurchases;
+const updatePurchase = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    const { id } = req.params;
+    const { itemName, date, purchasePrice, quantity, amount, paymentType, transactionId, } = req.body;
+    if (!itemName ||
+        !date ||
+        !purchasePrice ||
+        !quantity ||
+        !amount ||
+        !paymentType ||
+        !transactionId) {
+        res.status(400).json({
+            message: "All required fields must be provided",
+        });
+        return;
+    }
+    if (!id) {
+        res.status(400).json({
+            message: "Item ID is required",
+        });
+        return;
+    }
+    try {
+        const existingPurchase = yield prisma.purchase.findUnique({
+            where: { id },
+        });
+        if (!existingPurchase) {
+            res.status(404).json({
+                message: "Purchase not found",
+            });
+            return;
+        }
+        if (existingPurchase.quantity !== parseFloat(quantity)) {
+            yield prisma.$transaction((tx) => __awaiter(void 0, void 0, void 0, function* () {
+                yield tx.item.update({
+                    where: { id: itemName },
+                    data: {
+                        quantity: {
+                            decrement: existingPurchase.quantity,
+                        },
+                    },
+                });
+                yield tx.purchase.update({
+                    where: { id },
+                    data: {
+                        itemId: itemName,
+                        date: new Date(date),
+                        purchasePrice: parseFloat(purchasePrice),
+                        quantity: parseFloat(quantity),
+                        amount: parseFloat(amount),
+                        paymentType: paymentType,
+                        transactionId: transactionId,
+                    },
+                });
+                yield tx.item.update({
+                    where: { id: itemName },
+                    data: {
+                        quantity: {
+                            increment: parseFloat(quantity),
+                        },
+                    },
+                });
+            }));
+        }
+        else {
+            yield prisma.purchase.update({
+                where: { id },
+                data: {
+                    itemId: itemName,
+                    date: new Date(date),
+                    purchasePrice: parseFloat(purchasePrice),
+                    quantity: parseFloat(quantity),
+                    amount: parseFloat(amount),
+                    paymentType: paymentType,
+                    transactionId: transactionId,
+                },
+            });
+        }
+        res.status(200).json({
+            message: "Purchase updated successfully",
+        });
+    }
+    catch (error) {
+        console.error("Create purchase error:", error);
+        res.status(500).json({
+            message: "Failed to update purchase",
+        });
+        return;
+    }
+});
+exports.updatePurchase = updatePurchase;
+const deletePurchaseApi = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    const { id } = req.params;
+    if (!id) {
+        res.status(400).json({
+            message: "Purchase ID is required",
+        });
+        return;
+    }
+    try {
+        const existingPurchase = yield prisma.purchase.findUnique({
+            where: { id },
+        });
+        if (!existingPurchase) {
+            res.status(404).json({
+                message: "Purchase not found",
+            });
+            return;
+        }
+        yield prisma.item.update({
+            where: { id: existingPurchase.itemId },
+            data: {
+                quantity: {
+                    decrement: existingPurchase.quantity,
+                },
+            },
+        });
+        yield prisma.purchase.delete({
+            where: { id },
+        });
+        res.status(200).json({
+            message: "Purchase deleted successfully",
+        });
+    }
+    catch (error) {
+        console.error("Delete purchase error:", error);
+        res.status(500).json({
+            message: "Failed to delete purchase",
+        });
+    }
+});
+exports.deletePurchaseApi = deletePurchaseApi;

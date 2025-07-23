@@ -6,6 +6,8 @@ import {
     getAllItems,
     createPurchase,
     getAllPurchases,
+    updatePurchase,
+    deletePurchaseApi,
 } from "../controller/item";
 
 const itemRouter = express.Router();
@@ -16,5 +18,7 @@ itemRouter.delete("/delete/:id", deleteItem);
 itemRouter.get("/all", getAllItems);
 itemRouter.post("/purchase", createPurchase);
 itemRouter.get("/purchases", getAllPurchases);
+itemRouter.patch("/purchase/update/:id", updatePurchase);
+itemRouter.delete("/purchase/delete/:id", deletePurchaseApi);
 
 export default itemRouter;

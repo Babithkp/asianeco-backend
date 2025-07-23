@@ -12,4 +12,6 @@ itemRouter.delete("/delete/:id", item_1.deleteItem);
 itemRouter.get("/all", item_1.getAllItems);
 itemRouter.post("/purchase", item_1.createPurchase);
 itemRouter.get("/purchases", item_1.getAllPurchases);
+itemRouter.patch("/purchase/update/:id", item_1.updatePurchase);
+itemRouter.delete("/purchase/delete/:id", item_1.deletePurchaseApi);
 exports.default = itemRouter;

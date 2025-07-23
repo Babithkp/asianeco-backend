@@ -81,7 +81,7 @@ model QuoteItem {
   id      String @id @default(auto()) @map("_id") @db.ObjectId
   quote   Quote  @relation(fields: [quoteId], references: [id],onDelete: Cascade)
   quoteId String @db.ObjectId
-  item   Item   @relation(fields: [itemId], references: [id])
+  item   Item   @relation(fields: [itemId], references: [id],onDelete: Cascade)
   itemId String @db.ObjectId
   amount   Float
   quantity Float
@@ -107,7 +107,7 @@ model Item {
 
 model ItemInvoice {
   id        String   @id @default(auto()) @map("_id") @db.ObjectId
-  item      Item     @relation(fields: [itemId], references: [id])
+  item      Item     @relation(fields: [itemId], references: [id],onDelete: Cascade)
   itemId    String   @db.ObjectId
   invoice   Invoice? @relation(fields: [invoiceId], references: [id],onDelete: Cascade)
   invoiceId String   @db.ObjectId
@@ -120,7 +120,7 @@ model ItemInvoice {
 
 model Purchase {
   id            String   @id @default(auto()) @map("_id") @db.ObjectId
-  item          Item     @relation(fields: [itemId], references: [id])
+  item          Item     @relation(fields: [itemId], references: [id],onDelete: Cascade)
   itemId        String   @db.ObjectId
   purchasePrice Float
   quantity      Float
